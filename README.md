@@ -52,12 +52,45 @@ sudo ln -s /usr/bin/python2.7 /usr/bin/python
 wget -O - https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz | tar --xz -xf -
 ```
 
-> The toolchain directory and U-Boot source directory should be in the same directory
+> The toolchain directory and U-Boot source directory should be in the same directory.
+> For example:
+>
+> ```bash
+> ├── openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64
+> └── uboot-mt7621-dhcpd
+> ```
 
 - Run build script:
 
 ```bash
+# Interactive mode
 ./build.sh
+```
+
+### Other methods
+
+- non-interactive mode
+
+```bash
+./build.sh \
+  --flash NMBM \
+  --mtdparts "512k(u-boot),512k(u-boot-env),512k(factory),-(firmware)" \
+  --model "BOARD_NAME" \
+  --kernel-offset 0x180000 \
+  --reset-pin 7 \
+  --sysled-pin 13 \
+  --cpufreq 880 \
+  --ramfreq 1200 \
+  --ddrparam DDR3-256MiB \
+  --oldparam false \
+  --baudrate 115200 \
+  --yes
+```
+
+- build by board model name
+
+```bash
+BOARD=board_name ./build.sh 
 ```
 
 ## Board Parameters

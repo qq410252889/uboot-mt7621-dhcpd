@@ -67,4 +67,8 @@ config MT7621_DRAMC_DEBUG_LEGACY
 	bool "Enable verbose output during DRAMC initialization"
 	default y
 
+config MT7621_DRAM_DDR3_OLDPARAM_LEGACY
+	bool "Use older DDR3 timing parameter (0x0A000000 instead of 0x0C000000)"
+	default n
+
 endmenu

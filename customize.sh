@@ -13,8 +13,16 @@ echo "STAGING_DIR=${Toolchain%/toolchain-*}"
 
 # Check if Python is installed on the system
 echo "Trying python2.7..."
-command -v python2.7
-[ "$?" != "0" ] && { echo "Error: Python2.7 is not installed on this system."; exit 0; }
+PYTHON2_BIN="$(command -v python2.7)"
+[ -z "${PYTHON2_BIN}" ] && { echo "Error: Python2.7 is not installed on this system."; exit 1; }
+
+# Force `python` to use python2.7 temporarily for this script and child processes
+PYTHON_SHIM_DIR="$(mktemp -d)"
+ln -sf "${PYTHON2_BIN}" "${PYTHON_SHIM_DIR}/python"
+export PATH="${PYTHON_SHIM_DIR}:${PATH}"
+export PYTHON="${PYTHON2_BIN}"
+trap 'rm -rf "${PYTHON_SHIM_DIR}"' EXIT
+echo "Temporarily forcing python -> ${PYTHON2_BIN}"
 
 cd $(dirname "$0")
 

@@ -40,13 +40,7 @@ On Ubuntu22.04:
 
 ```bash
 sudo apt-get install git swig python2-dev
-sudo rm /usr/bin/python
-# create a symlink for python2
-sudo ln -s /usr/bin/python2.7 /usr/bin/python2
-sudo ln -s /usr/bin/python2.7 /usr/bin/python
 ```
-
-> if you want to change back: `sudo rm /usr/bin/python`, `sudo ln -s /usr/bin/python3 /usr/bin/python`
 
 - Get toolchain:
 

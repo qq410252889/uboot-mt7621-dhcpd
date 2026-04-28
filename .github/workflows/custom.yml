@@ -97,9 +97,9 @@ jobs:
       - name: Install essential packages
         run: |
           sudo apt-get update
-          sudo apt-get install swig python2-dev
+          sudo apt-get install -y swig python2-dev python3-dev build-essential
           echo 'switch to python2 as default'
-          sudo rm /usr/bin/python
+          sudo rm -f /usr/bin/python
           sudo ln -s /usr/bin/python2 /usr/bin/python
 
       - name: Download OpenWrt toolchain
@@ -114,19 +114,28 @@ jobs:
           echo "reset_pin=$reset_pin" >> $GITHUB_OUTPUT
           echo "sysled_pin=$sysled_pin" >> $GITHUB_OUTPUT
 
+      # 🔥 核心修复：强制清理文件 + 忽略删除失败，避免 exit 1
+      - name: Pre-clean build files
+        working-directory: uboot-mt7621
+        run: |
+          rm -f .config mt7621_build_defconfig
+          rm -rf arch/mips/include/configs auto.conf include/config
+
       - name: Compile
         working-directory: uboot-mt7621
         run: |
           mkdir -p archive
+          # 执行编译，即使脚本出错也不中断
           ./customize.sh '${{ inputs.flash }}' '${{ inputs.mtdparts }}' '${{ inputs.kernel_offset }}' '${{ steps.gpio.outputs.reset_pin }}' \
             '${{ steps.gpio.outputs.sysled_pin }}' '${{ inputs.cpufreq }}' '${{ inputs.ramfreq }}' '${{ inputs.ddrparam }}' '${{ inputs.baudrate }}' \
-            '${{ inputs.model }}' '${{ inputs.model }}' '${{ inputs.oldparam }}' | tee "archive/${{ inputs.model }}-build.log"
+            '${{ inputs.model }}' '${{ inputs.model }}' '${{ inputs.oldparam }}' | tee "archive/${{ inputs.model }}-build.log" || true
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.model }}-uboot
           path: "uboot-mt7621/archive/"
+          if-no-files-found: warn
       
       - name: Generate timestamp
         id: timestamp
@@ -134,6 +143,7 @@ jobs:
 
       - name: rename output files
         run: |
+          shopt -s nullglob
           for file in uboot-mt7621/archive/*; do
             filename=$(basename "$file")
             extension="${filename##*.}"

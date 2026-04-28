@@ -1,7 +1,6 @@
 name: Build customized u-boot
 permissions:
   contents: write
-# 彻底消除 Node.js 20 弃用警告
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -36,7 +35,7 @@ on:
         description: 'GPIO Config (format: reset_pin,sysled_pin)'
         required: true
         type: string
-        default: '18,31'
+        default: '18,18'
       cpufreq:
         description: 'CPU Frequency (400 - 1200)'
         required: true
@@ -94,38 +93,37 @@ jobs:
        fail-fast: False
 
     steps:
-      - name: Checkout master directory
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           path: uboot-mt7621
 
-      - name: Install essential packages
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y swig python2-dev python3-dev build-essential
-          echo 'switch to python2 as default'
           sudo rm -f /usr/bin/python
           sudo ln -s /usr/bin/python2 /usr/bin/python
 
-      - name: Download OpenWrt toolchain
+      - name: Download toolchain
         run: |
           wget -O - https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz \
             | tar --xz -xf -
 
-      - name: Parse GPIO config
+      - name: Parse GPIO
         id: gpio
         run: |
           IFS=',' read -r reset_pin sysled_pin <<< "${{ inputs.gpio_config }}"
           echo "reset_pin=$reset_pin" >> $GITHUB_OUTPUT
           echo "sysled_pin=$sysled_pin" >> $GITHUB_OUTPUT
 
-      - name: Clean model name for artifact
+      - name: Clean model name
         id: clean_model
         run: |
           clean_model=$(echo "${{ inputs.model }}" | tr '/:*?<>|"\\' '-------')
           echo "clean_model=$clean_model" >> $GITHUB_OUTPUT
 
-      - name: Pre-clean build files
+      - name: Pre-clean
         working-directory: uboot-mt7621
         run: |
           rm -f .config mt7621_build_defconfig
@@ -150,25 +148,25 @@ jobs:
             '${{ inputs.oldparam }}' \
             | tee "archive/${{ steps.clean_model.outputs.clean_model }}-build.log" || true
 
-      - name: Upload binaries
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.clean_model.outputs.clean_model }}-uboot
           path: "uboot-mt7621/archive/"
           if-no-files-found: warn
-      
+
       - name: Generate timestamp
         id: timestamp
         run: echo "now=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
 
-      - name: rename output files
+      - name: Rename files
         run: |
           shopt -s nullglob
           for file in uboot-mt7621/archive/*; do
             filename=$(basename "$file")
-            extension="${filename##*.}"
+            ext="${filename##*.}"
             name="${filename%.*}"
-            mv "$file" "uboot-mt7621/archive/${name}-${{ steps.timestamp.outputs.now }}.${extension}"
+            mv "$file" "uboot-mt7621/archive/${name}-${{ steps.timestamp.outputs.now }}.${ext}"
           done
 
       - name: Create Release
@@ -182,16 +180,16 @@ jobs:
             - Commit: ${{ github.sha }}
             - Build Time: ${{ steps.timestamp.outputs.now }} (UTC)
             - ---
-            - Device Model: ${{ inputs.model }}
-            - Flash Type: ${{ inputs.flash }}
-            - MTD Partitions: ${{ inputs.mtdparts }}
-            - Kernel Load Address: ${{ inputs.kernel_offset }}
-            - Reset Button GPIO: ${{ steps.gpio.outputs.reset_pin }}
-            - Sysled GPIO: ${{ steps.gpio.outputs.sysled_pin }}
-            - CPU Frequency: ${{ inputs.cpufreq }} MHz
-            - DDR Frequency: ${{ inputs.ramfreq }} MHz
-            - DDR initialization parameters: ${{ inputs.ddrparam }}
-            - Use old DDR parameters: ${{ inputs.oldparam }}
-            - Baud Rate: ${{ inputs.baudrate }}
+            - Device: ${{ inputs.model }}
+            - Flash: ${{ inputs.flash }}
+            - MTD: ${{ inputs.mtdparts }}
+            - Kernel Offset: ${{ inputs.kernel_offset }}
+            - Reset GPIO: ${{ steps.gpio.outputs.reset_pin }}
+            - SysLED GPIO: ${{ steps.gpio.outputs.sysled_pin }}
+            - CPU: ${{ inputs.cpufreq }} MHz
+            - DDR Clock: ${{ inputs.ramfreq }} MHz
+            - DDR Type: ${{ inputs.ddrparam }}
+            - Old DDR Param: ${{ inputs.oldparam }}
+            - Baudrate: ${{ inputs.baudrate }}
           files: uboot-mt7621/archive/*
           tag_name: ${{ steps.clean_model.outputs.clean_model }}-${{ steps.timestamp.outputs.now }}

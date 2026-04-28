@@ -1,4 +1,6 @@
 name: Build customized u-boot
+permissions:
+  contents: write
 
 on:
   workflow_dispatch:
@@ -7,7 +9,7 @@ on:
         description: 'Device Model'
         required: true
         type: string
-        default: 'R4A'
+        default: 'Xiaomi_Mi_Router_4a/3g-v2'
       flash:
         description: 'Flash Type'
         required: true
@@ -114,7 +116,12 @@ jobs:
           echo "reset_pin=$reset_pin" >> $GITHUB_OUTPUT
           echo "sysled_pin=$sysled_pin" >> $GITHUB_OUTPUT
 
-      # 🔥 核心修复：强制清理文件 + 忽略删除失败，避免 exit 1
+      - name: Clean model name for artifact
+        id: clean_model
+        run: |
+          clean_model=$(echo "${{ inputs.model }}" | tr '/:*?<>|"\\' '-------')
+          echo "clean_model=$clean_model" >> $GITHUB_OUTPUT
+
       - name: Pre-clean build files
         working-directory: uboot-mt7621
         run: |
@@ -125,15 +132,25 @@ jobs:
         working-directory: uboot-mt7621
         run: |
           mkdir -p archive
-          # 执行编译，即使脚本出错也不中断
-          ./customize.sh '${{ inputs.flash }}' '${{ inputs.mtdparts }}' '${{ inputs.kernel_offset }}' '${{ steps.gpio.outputs.reset_pin }}' \
-            '${{ steps.gpio.outputs.sysled_pin }}' '${{ inputs.cpufreq }}' '${{ inputs.ramfreq }}' '${{ inputs.ddrparam }}' '${{ inputs.baudrate }}' \
-            '${{ inputs.model }}' '${{ inputs.model }}' '${{ inputs.oldparam }}' | tee "archive/${{ inputs.model }}-build.log" || true
+          ./customize.sh \
+            '${{ inputs.flash }}' \
+            '${{ inputs.mtdparts }}' \
+            '${{ inputs.kernel_offset }}' \
+            '${{ steps.gpio.outputs.reset_pin }}' \
+            '${{ steps.gpio.outputs.sysled_pin }}' \
+            '${{ inputs.cpufreq }}' \
+            '${{ inputs.ramfreq }}' \
+            '${{ inputs.ddrparam }}' \
+            '${{ inputs.baudrate }}' \
+            '${{ inputs.model }}' \
+            '${{ inputs.model }}' \
+            '${{ inputs.oldparam }}' \
+            | tee "archive/${{ steps.clean_model.outputs.clean_model }}-build.log" || true
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.model }}-uboot
+          name: ${{ steps.clean_model.outputs.clean_model }}-uboot
           path: "uboot-mt7621/archive/"
           if-no-files-found: warn
       
@@ -157,7 +174,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: CUSTOM-${{ inputs.model }}-${{ steps.timestamp.outputs.now }}
+          name: CUSTOM-${{ steps.clean_model.outputs.clean_model }}-${{ steps.timestamp.outputs.now }}
           body: |
             - Commit: ${{ github.sha }}
             - Build Time: ${{ steps.timestamp.outputs.now }} (UTC)
@@ -174,4 +191,4 @@ jobs:
             - Use old DDR parameters: ${{ inputs.oldparam }}
             - Baud Rate: ${{ inputs.baudrate }}
           files: uboot-mt7621/archive/*
-          tag_name: ${{ inputs.model }}-${{ steps.timestamp.outputs.now }}
+          tag_name: ${{ steps.clean_model.outputs.clean_model }}-${{ steps.timestamp.outputs.now }}

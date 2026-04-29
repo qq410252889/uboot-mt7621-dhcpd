@@ -4,10 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       model:
-        description: 'Device model, e.g. zte_e8820s'
+        description: 'Device model (select from list or input custom)'
         required: true
         type: string
         default: 'zte_e8820s'
+        # 核心：添加可选型号列表（根据实际支持的型号补充/调整）
+        enum:
+          - zte_e8820s
+          - mi_router_3g
+          - newifi_d2
+          - phicomm_k2p
+          - hiwifi_hc5962
+          - youhua_wr1200js
+          - tplink_archer_c6u
+          - asus_rt-ac57u
+          - tenda_ac9
       warninginfo:
         description: 'Warning: These configuration files from the automated migration. Configs-mt7621 <https://github.com/Yuzhii0718/uboot-mt7621-dhcpd/tree/main/configs-mt7621> are untrusted! Please definitely check whether they are suitable for your device before compiling! Please review the README <https://github.com/Yuzhii0718/uboot-mt7621-dhcpd/blob/main/README.md> before use! Otherwise, there is a risk of bricking your device, at your own risk!'
         required: true

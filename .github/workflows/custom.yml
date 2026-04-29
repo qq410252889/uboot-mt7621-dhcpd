@@ -1,4 +1,4 @@
-name: Build customized u-boot
+name: 自定义编译 U-Boot
 permissions:
   contents: write
 env:
@@ -8,12 +8,12 @@ on:
   workflow_dispatch:
     inputs:
       model:
-        description: 'Device Model'
+        description: '设备型号'
         required: true
         type: string
         default: 'Xiaomi_Mi_Router_4a/3g-v2'
       flash:
-        description: 'Flash Type'
+        description: '闪存类型'
         required: true
         type: choice
         options:
@@ -22,27 +22,27 @@ on:
         - 'NOR'
         default: 'NOR'
       mtdparts:
-        description: 'MTD Partitions'
+        description: 'MTD 分区布局'
         required: true
         type: string
         default: '192k(u-boot),64k(u-boot-env),64k(factory),64k(factory),64k(crash),64k(cfg_bak),1m(overlay),-(firmware)'
       kernel_offset:
-        description: 'Kernel Load Address'
+        description: '内核加载基地址'
         required: true
         type: string
         default: '0x180000'
       gpio_config:
-        description: 'GPIO Config (format: reset_pin,sysled_pin)'
+        description: 'GPIO 配置（格式：复位引脚,指示灯引脚）'
         required: true
         type: string
         default: '18,8'
       cpufreq:
-        description: 'CPU Frequency (400 - 1200)'
+        description: 'CPU 频率（400 - 1200）'
         required: true
         type: string
         default: '880'
       ramfreq:
-        description: 'DRAM Frequency'
+        description: '内存频率'
         required: true
         type: choice
         options:
@@ -52,7 +52,7 @@ on:
         - '1200'
         default: '1200'
       ddrparam:
-        description: 'DDR initialization parameters'
+        description: 'DDR 初始化参数'
         required: true
         type: choice
         options:
@@ -67,12 +67,12 @@ on:
         - 'DDR3-128MiB-KGD'
         default: 'DDR3-128MiB'
       oldparam:
-        description: 'Use old DDR parameters (for compatibility with older hardware revisions)'
+        description: '使用旧版 DDR 参数（适配早期硬件）'
         required: true
         type: boolean
         default: false
       baudrate:
-        description: 'Baud Rate'
+        description: '串口波特率'
         required: true
         type: choice
         options:
@@ -80,56 +80,56 @@ on:
         - '115200'
         default: '115200'
       pub_release:
-        description: 'Publish to GitHub Release'
+        description: '编译完成后发布至版本记录'
         required: false
         default: true
         type: boolean
 
 jobs:
   build:
-    name: Build MT7621 u-boot
+    name: 编译 MT7621 U-Boot
     runs-on: ubuntu-22.04
     strategy:
-       fail-fast: False
+       fail-fast: false
 
     steps:
-      - name: Checkout
+      - name: 拉取源码
         uses: actions/checkout@v4
         with:
           path: uboot-mt7621
 
-      - name: Install dependencies
+      - name: 安装编译依赖
         run: |
           sudo apt-get update
           sudo apt-get install -y swig python2-dev python3-dev build-essential
           sudo rm -f /usr/bin/python
           sudo ln -s /usr/bin/python2 /usr/bin/python
 
-      - name: Download toolchain
+      - name: 下载交叉编译工具链
         run: |
           wget -O - https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz \
             | tar --xz -xf -
 
-      - name: Parse GPIO
+      - name: 解析 GPIO 参数
         id: gpio
         run: |
           IFS=',' read -r reset_pin sysled_pin <<< "${{ inputs.gpio_config }}"
           echo "reset_pin=$reset_pin" >> $GITHUB_OUTPUT
           echo "sysled_pin=$sysled_pin" >> $GITHUB_OUTPUT
 
-      - name: Clean model name
+      - name: 清理设备名特殊字符
         id: clean_model
         run: |
           clean_model=$(echo "${{ inputs.model }}" | tr '/:*?<>|"\\' '-------')
           echo "clean_model=$clean_model" >> $GITHUB_OUTPUT
 
-      - name: Pre-clean
+      - name: 编译前清理缓存
         working-directory: uboot-mt7621
         run: |
           rm -f .config mt7621_build_defconfig
           rm -rf arch/mips/include/configs auto.conf include/config
 
-      - name: Compile
+      - name: 开始定制编译
         working-directory: uboot-mt7621
         run: |
           mkdir -p archive
@@ -146,20 +146,20 @@ jobs:
             '${{ inputs.model }}' \
             '${{ inputs.model }}' \
             '${{ inputs.oldparam }}' \
-            | tee "archive/${{ steps.clean_model.outputs.clean_model }}-build.log" || true
+            | tee "archive/${{ steps.clean_model.outputs.clean_model }}-编译日志.log" || true
 
-      - name: Upload artifacts
+      - name: 上传编译产物
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.clean_model.outputs.clean_model }}-uboot
           path: "uboot-mt7621/archive/"
           if-no-files-found: warn
 
-      - name: Generate timestamp
+      - name: 生成时间戳
         id: timestamp
         run: echo "now=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
 
-      - name: Rename files
+      - name: 文件追加时间戳重命名
         run: |
           shopt -s nullglob
           for file in uboot-mt7621/archive/*; do
@@ -169,27 +169,27 @@ jobs:
             mv "$file" "uboot-mt7621/archive/${name}-${{ steps.timestamp.outputs.now }}.${ext}"
           done
 
-      - name: Create Release
+      - name: 创建发布版本
         uses: softprops/action-gh-release@v2
         if: ${{ inputs.pub_release }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: CUSTOM-${{ steps.clean_model.outputs.clean_model }}-${{ steps.timestamp.outputs.now }}
+          name: 定制U-Boot-${{ steps.clean_model.outputs.clean_model }}-${{ steps.timestamp.outputs.now }}
           body: |
-            - Commit: ${{ github.sha }}
-            - Build Time: ${{ steps.timestamp.outputs.now }} (UTC)
+            - 代码提交: ${{ github.sha }}
+            - 编译时间: ${{ steps.timestamp.outputs.now }} (UTC)
             - ---
-            - Device: ${{ inputs.model }}
-            - Flash: ${{ inputs.flash }}
-            - MTD: ${{ inputs.mtdparts }}
-            - Kernel Offset: ${{ inputs.kernel_offset }}
-            - Reset GPIO: ${{ steps.gpio.outputs.reset_pin }}
-            - SysLED GPIO: ${{ steps.gpio.outputs.sysled_pin }}
-            - CPU: ${{ inputs.cpufreq }} MHz
-            - DDR Clock: ${{ inputs.ramfreq }} MHz
-            - DDR Type: ${{ inputs.ddrparam }}
-            - Old DDR Param: ${{ inputs.oldparam }}
-            - Baudrate: ${{ inputs.baudrate }}
+            - 设备型号: ${{ inputs.model }}
+            - 闪存类型: ${{ inputs.flash }}
+            - 分区布局: ${{ inputs.mtdparts }}
+            - 内核偏移: ${{ inputs.kernel_offset }}
+            - 复位引脚: ${{ steps.gpio.outputs.reset_pin }}
+            - 指示灯引脚: ${{ steps.gpio.outputs.sysled_pin }}
+            - CPU 频率: ${{ inputs.cpufreq }} MHz
+            - 内存频率: ${{ inputs.ramfreq }} MHz
+            - DDR 参数: ${{ inputs.ddrparam }}
+            - 旧版DDR参数: ${{ inputs.oldparam }}
+            - 串口波特率: ${{ inputs.baudrate }}
           files: uboot-mt7621/archive/*
           tag_name: ${{ steps.clean_model.outputs.clean_model }}-${{ steps.timestamp.outputs.now }}

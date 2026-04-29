@@ -1,7 +1,7 @@
 name: 按设备编译 U-Boot
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # 强制使用 Node.js 24，消除警告
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # 消除 Node.js 版本警告
 
 on:
   workflow_dispatch:
@@ -47,19 +47,33 @@ jobs:
           exit 1
 
       - name: 拉取仓库代码
-        uses: actions/checkout@v4.1.7  # 升级到支持 Node.js 24 的版本
+        uses: actions/checkout@v4.1.7
         with:
           path: uboot-mt7621
 
       - name: 安装编译依赖环境
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libncurses5-dev python2-dev swig python-is-python2 bzip2 wget git make gcc g++ libssl-dev u-boot-tools
+          sudo apt-get install -y build-essential libncurses5-dev python2-dev swig bzip2 wget git make gcc g++ libssl-dev u-boot-tools
+          # 手动设置 python -> python2
+          sudo rm -f /usr/bin/python
+          sudo ln -s /usr/bin/python2 /usr/bin/python
+          python --version  # 验证版本
 
       - name: 下载 OpenWrt 交叉编译工具链
         run: |
           wget -q -O - https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz \
             | tar -xJ
+
+      - name: 调试：查看配置文件目录
+        working-directory: uboot-mt7621
+        run: |
+          echo "=== 查看 configs-mt7621 目录 ==="
+          ls -la configs-mt7621/ || echo "configs-mt7621 目录不存在"
+          echo "=== 查看 configs 目录 ==="
+          ls -la configs/ || echo "configs 目录不存在"
+          echo "=== 搜索目标配置文件 ==="
+          find . -name "*xiaomi_mi-router-3-pro*" || echo "未找到匹配的配置文件"
 
       - name: 生成时间戳
         id: timestamp

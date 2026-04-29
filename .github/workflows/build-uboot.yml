@@ -1,0 +1,189 @@
+name: Build u-boot by board
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: 编译模式｜single=单机型 / batch=批量全编译
+        required: true
+        type: choice
+        options:
+          - single
+          - batch
+        default: single
+      model:
+        description: 单机型名称(例:zte_e8820s)，批量模式此项忽略
+        required: false
+        type: string
+        default: 'zte_e8820s'
+      branch:
+        description: 选择编译分支
+        required: true
+        type: string
+        default: master
+      warninginfo:
+        description: 风险告知确认(必选)
+        required: true
+        type: boolean
+        default: false
+      warning:
+        description: 已阅读风险、自行承担刷机风险(必选)
+        required: true
+        type: boolean
+        default: false
+      confirm:
+        description: 盲目勾选、未看警告(请务必取消勾选)
+        required: true
+        type: boolean
+        default: false
+      pub_release:
+        description: 编译完成自动发布 Release
+        required: false
+        type: boolean
+        default: true
+
+# 批量编译机型列表，自行增删
+env:
+  BATCH_BOARDS: "zte_e8820s phicomm_k2p phicomm_k2 newifi_d2 mi_r3g hc5661 hc5861"
+  TOOLCHAIN_NAME: "openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64"
+
+jobs:
+  build_single:
+    name: Single Build - ${{ inputs.model }}
+    if: inputs.build_mode == 'single'
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: 风险校验
+        if: ${{ !inputs.warninginfo || !inputs.warning || inputs.confirm }}
+        run: |
+          echo "::error::必须勾选风险告知+自行承担风险，且取消盲目勾选选项！"
+          exit 1
+
+      - name: 检出代码 ${{ inputs.branch }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          path: uboot-mt7621
+
+      - name: 安装编译依赖
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential libncurses5-dev \
+            python2-dev swig python-is-python2 bzip2 wget git make gcc g++
+
+      - name: 下载交叉工具链
+        run: |
+          wget -q https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/${{ env.TOOLCHAIN_NAME }}.tar.xz
+          tar -xf ${{ env.TOOLCHAIN_NAME }}.tar.xz
+
+      - name: 生成时间戳
+        id: timestamp
+        run: echo "now=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
+
+      - name: 编译单机型 U-Boot
+        working-directory: uboot-mt7621
+        run: |
+          mkdir -p archive
+          export PATH=../${{ env.TOOLCHAIN_NAME }}/bin:$PATH
+          BOARD=${{ inputs.model }} ./build.sh | tee archive/${{ inputs.model }}_build.log
+
+      - name: 文件追加时间戳
+        run: |
+          for f in uboot-mt7621/archive/*;do
+            [ -f "$f" ] && mv "$f" "${f%.*}_${{ steps.timestamp.outputs.now }}.${f##*.}"
+          done
+
+      - name: 上传产物构件
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.model }}_uboot_${{ steps.timestamp.outputs.now }}
+          path: uboot-mt7621/archive/
+
+      - name: 发布 Release
+        uses: softprops/action-gh-release@v2
+        if: ${{ inputs.pub_release }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: uboot_${{ inputs.model }}_${{ steps.timestamp.outputs.now }}
+          name: U-Boot-${{ inputs.model }} ${{ steps.timestamp.outputs.now }}
+          body: |
+            【单机型编译】
+            设备：${{ inputs.model }}
+            分支：${{ inputs.branch }}
+            时间：${{ steps.timestamp.outputs.now }} UTC
+            提交：${{ github.sha }}
+          files: uboot-mt7621/archive/*
+
+  build_batch:
+    name: Batch Build All Boards
+    if: inputs.build_mode == 'batch'
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        board: ${{ split(env.BATCH_BOARDS, ' ') }}
+    steps:
+      - name: 风险校验
+        if: ${{ !inputs.warninginfo || !inputs.warning || inputs.confirm }}
+        run: |
+          echo "::error::必须勾选风险告知+自行承担风险，且取消盲目勾选选项！"
+          exit 1
+
+      - name: 检出代码 ${{ inputs.branch }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          path: uboot-mt7621
+
+      - name: 安装编译依赖
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential libncurses5-dev \
+            python2-dev swig python-is-python2 bzip2 wget git make gcc g++
+
+      - name: 下载交叉工具链
+        run: |
+          wget -q https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/${{ env.TOOLCHAIN_NAME }}.tar.xz
+          tar -xf ${{ env.TOOLCHAIN_NAME }}.tar.xz
+
+      - name: 生成时间戳
+        id: timestamp
+        run: echo "now=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
+
+      - name: 批量编译 ${{ matrix.board }}
+        working-directory: uboot-mt7621
+        run: |
+          mkdir -p archive
+          export PATH=../${{ env.TOOLCHAIN_NAME }}/bin:$PATH
+          BOARD=${{ matrix.board }} ./build.sh | tee archive/${{ matrix.board }}_build.log
+
+      - name: 文件命名加时间戳
+        run: |
+          for f in uboot-mt7621/archive/*;do
+            [ -f "$f" ] && mv "$f" "${f%.*}_${{ steps.timestamp.outputs.now }}.${f##*.}"
+          done
+
+      - name: 上传批量构件
+        uses: actions/upload-artifact@v4
+        with:
+          name: batch_${{ matrix.board }}_uboot_${{ steps.timestamp.outputs.now }}
+          path: uboot-mt7621/archive/
+
+      - name: 统一汇总发布批量 Release
+        uses: softprops/action-gh-release@v2
+        if: ${{ inputs.pub_release && matrix.board == split(env.BATCH_BOARDS, ' ')[0] }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: uboot_batch_all_${{ steps.timestamp.outputs.now }}
+          name: MT7621全机型U-Boot合集 ${{ steps.timestamp.outputs.now }}
+          body: |
+            【批量全自动编译】
+            包含机型：${{ env.BATCH_BOARDS }}
+            编译分支：${{ inputs.branch }}
+            编译时间：${{ steps.timestamp.outputs.now }} UTC
+            仓库提交：${{ github.sha }}
+          files: uboot-mt7621/archive/*

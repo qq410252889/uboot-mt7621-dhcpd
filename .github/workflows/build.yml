@@ -4,23 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       model:
-        description: 'Device model (select from list or input custom)'
+        description: 'Device model, e.g. zte_e8820s'
         required: true
         type: string
         default: 'zte_e8820s'
-        # 核心：添加可选型号列表（根据实际支持的型号补充/调整）
-        enum:
-          - zte_e8820s
-          - mi_router_3g
-          - newifi_d2
-          - phicomm_k2p
-          - hiwifi_hc5962
-          - youhua_wr1200js
-          - tplink_archer_c6u
-          - asus_rt-ac57u
-          - tenda_ac9
       warninginfo:
-        description: 'Warning: These configuration files from the automated migration. Configs-mt7621 <https://github.com/Yuzhii0718/uboot-mt7621-dhcpd/tree/main/configs-mt7621> are untrusted! Please definitely check whether they are suitable for your device before compiling! Please review the README <https://github.com/Yuzhii0718/uboot-mt7621-dhcpd/blob/main/README.md> before use! Otherwise, there is a risk of bricking your device, at your own risk!'
+        description: 'Warning: These configuration files from the automated migration.
+          Configs-mt7621 <https://github.com/Yuzhii0718/uboot-mt7621-dhcpd/tree/main/configs-mt7621> are untrusted!
+          Please definitely check whether they are suitable for your device before compiling!
+          Please review the README <https://github.com/Yuzhii0718/uboot-mt7621-dhcpd/blob/main/README.md> before use!
+          Otherwise, there is a risk of bricking your device, at your own risk!'
         required: true
         type: boolean
         default: false
@@ -30,7 +23,9 @@ on:
         type: boolean
         default: false
       confirm:
-        description: 'I did not check the warning message; I just blindly selected all the checkboxes. Please close this workflow!'
+        description: 'I did not check the warning message; 
+          I just blindly selected all the checkboxes.
+          Please close this workflow!'
         required: true
         type: boolean
         default: false
@@ -45,93 +40,75 @@ jobs:
     name: Build MT7621 u-boot
     runs-on: ubuntu-22.04
     strategy:
-      fail-fast: false
+       fail-fast: False
 
     steps:
-      # 安全校验：必须勾选两个警告，不能勾选反确认框
-      - name: Validate warning confirmations
-        if: ${{ !inputs.warninginfo || !inputs.warning || inputs.confirm }}
+      - name: make sure the user has confirmed the warning
+        if: ${{ !inputs.warning || !inputs.warninginfo }}
         run: |
-          echo "ERROR: You must confirm all warnings, and DO NOT check the blind confirmation box!"
+          echo "Please confirm the warning before running this workflow."
           exit 1
 
-      # 拉取代码
-      - name: Checkout repository
+      - name: make sure the user has confirmed the warning info not being trustworthy
+        if: ${{ inputs.confirm }}
+        run: |
+          echo "Please confirm that you have read the warning info before running this workflow."
+          exit 1
+
+      - name: Checkout master directory
         uses: actions/checkout@v4
         with:
           path: uboot-mt7621
 
-      # 安装编译依赖（修复 Ubuntu 22.04 Python2 安装问题）
-      - name: Install build dependencies
+      - name: Install essential packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y swig build-essential libncurses-dev unzip bzip2 flex bison
-          # 手动安装 Python2（Ubuntu 22.04 官方源已移除）
-          wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
-          tar -xf Python-2.7.18.tgz
-          cd Python-2.7.18
-          ./configure --enable-optimizations
-          make -j$(nproc)
-          sudo make altinstall
-          sudo ln -sf /usr/local/bin/python2.7 /usr/bin/python
-          python --version
+          sudo apt-get install swig python2-dev
+          echo 'switch to python2 as default'
+          sudo rm /usr/bin/python
+          sudo ln -s /usr/bin/python2 /usr/bin/python
 
-      # 下载工具链
       - name: Download OpenWrt toolchain
         run: |
-          wget -O openwrt-toolchain.tar.xz https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-          tar -xJf openwrt-toolchain.tar.xz
+          wget -O - https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz \
+            | tar --xz -xf -
 
-      # 生成时间戳（提前生成，避免编译后再生成导致文件未重命名）
-      - name: Generate build timestamp
-        id: timestamp
-        run: echo "now=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
-
-      # 编译 U-Boot
-      - name: Compile U-Boot
+      - name: Compile
         working-directory: uboot-mt7621
         run: |
           mkdir -p archive
-          export BOARD=${{ inputs.model }}
-          chmod +x build.sh
-          ./build.sh | tee "archive/${{ inputs.model }}-build.log"
+          BOARD=${{ inputs.model }} ./build.sh | tee "archive/${{ inputs.model }}-build.log"
 
-      # 重命名编译产物（添加时间戳）
-      - name: Rename output files
-        run: |
-          cd uboot-mt7621/archive
-          for file in *; do
-            if [ -f "$file" ]; then
-              filename="${file%.*}"
-              extension="${file##*.}"
-              mv "$file" "${filename}-${{ steps.timestamp.outputs.now }}.${extension}"
-            fi
-          done
-
-      # 上传编译产物到 Artifacts
-      - name: Upload compiled binaries
+      - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.model }}-uboot-${{ steps.timestamp.outputs.now }}
-          path: uboot-mt7621/archive/
-          if-no-files-found: error
+          name: ${{ inputs.model }}-uboot
+          path: "uboot-mt7621/archive/"
+      
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "now=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
 
-      # 发布到 GitHub Release
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: rename uboot-mt7621
+        run: |
+          for file in uboot-mt7621/archive/*; do
+            filename=$(basename "$file")
+            extension="${filename##*.}"
+            name="${filename%.*}"
+            mv "$file" "uboot-mt7621/archive/${name}-${{ steps.timestamp.outputs.now }}.${extension}"
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         if: ${{ inputs.pub_release }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: "U-Boot for ${{ inputs.model }} (${{ steps.timestamp.outputs.now }})"
-          tag_name: "${{ inputs.model }}-${{ steps.timestamp.outputs.now }}"
+          name: BOARD-${{ inputs.model }}-${{ steps.timestamp.outputs.now }}
           body: |
-            ## U-Boot Build for ${{ inputs.model }}
-            - Build Time: ${{ steps.timestamp.outputs.now }} (UTC)
             - Commit: ${{ github.sha }}
-            - Device Model: ${{ inputs.model }}
-            ---
-            ⚠️ WARNING: Flash at your own risk!
+            - Build Time: ${{ steps.timestamp.outputs.now }} (UTC)
+            - ---
+            - Device: ${{ inputs.model }}
           files: uboot-mt7621/archive/*
-          draft: false
-          prerelease: false
+          tag_name: ${{ inputs.model }}-${{ steps.timestamp.outputs.now }}

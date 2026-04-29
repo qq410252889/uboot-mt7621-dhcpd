@@ -1,5 +1,8 @@
 name: 按设备编译 U-Boot
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # 强制使用 Node.js 24，消除警告
+
 on:
   workflow_dispatch:
     inputs:
@@ -44,14 +47,14 @@ jobs:
           exit 1
 
       - name: 拉取仓库代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.7  # 升级到支持 Node.js 24 的版本
         with:
           path: uboot-mt7621
 
       - name: 安装编译依赖环境
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libncurses5-dev python2-dev swig python-is-python2 bzip2 wget git make gcc g++
+          sudo apt-get install -y build-essential libncurses5-dev python2-dev swig python-is-python2 bzip2 wget git make gcc g++ libssl-dev u-boot-tools
 
       - name: 下载 OpenWrt 交叉编译工具链
         run: |
@@ -68,7 +71,7 @@ jobs:
           mkdir -p archive
           export TOOLCHAIN_DIR="../openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64"
           export PATH=$TOOLCHAIN_DIR/bin:$PATH
-          BOARD=${{ inputs.model }} ./build.sh | tee "archive/${{ inputs.model }}-编译日志.log"
+          BOARD=${{ inputs.model }} ./build.sh 2>&1 | tee "archive/${{ inputs.model }}-编译日志.log"
 
       - name: 给产物文件添加时间戳重命名
         run: |

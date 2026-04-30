@@ -9,7 +9,14 @@ on:
       model:
         description: '设备型号，例如：xiaomi_mi-router-3-pro'
         required: true
-        type: string
+        type: choice
+        options:
+        - 'xiaomi_mi-router-3-pro'
+        - 'xiaomi_mi-router-4a-3g-v2'
+        - 'xiaomi_mi-router-ac2100'
+        - 'xiaomi_mi-router-cr660x'
+        - 'xiaomi_redmi-router-ac2100'
+        - 'xiaomi_mi-router-3g'        
         default: 'xiaomi_mi-router-3-pro'
       warninginfo:
         description: '警告：此配置文件为自动迁移生成。mt7621 系列配置文件不受信任！编译前务必确认适配你的设备！使用前请阅读项目 README！错误刷写有变砖风险，风险自负！'

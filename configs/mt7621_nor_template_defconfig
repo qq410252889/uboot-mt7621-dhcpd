@@ -1,188 +1,198 @@
-# 启用MIPS架构
+#启用MIPS处理器架构
 CONFIG_MIPS=y
-# TPL阶段最大镜像大小 128KB (修复空间不足)
-CONFIG_TPL_MAX_SIZE=131072
-# SPL阶段支持串口输出
+#TPL最大镜像64KB(标准大小无需扩大)
+CONFIG_TPL_MAX_SIZE=65536
+#SPL阶段支持串口输出
 CONFIG_SPL_SERIAL_SUPPORT=y
-# TPL阶段启用通用库支持
+#TPL阶段启用基础通用库支撑启动
 CONFIG_TPL_LIBGENERIC_SUPPORT=y
-# 环境变量分区大小64KB
+#U-Boot环境变量分区大小64KB
 CONFIG_ENV_SIZE=0x10000
-# SPL阶段早期堆内存大小1MB
-CONFIG_SPL_SYS_MALLOC_F_LEN=0x100000
-# 调试串口由板级初始化
+#精简SPL早期堆内存为512KB(瘦身)
+CONFIG_SPL_SYS_MALLOC_F_LEN=0x80000
+#调试串口由板级代码初始化
 CONFIG_DEBUG_UART_BOARD_INIT=y
-# 调试串口寄存器基地址
+#MT7621硬件调试串口基地址
 CONFIG_DEBUG_UART_BASE=0xbe000c00
-# 调试串口时钟50MHz
+#调试串口外设时钟50MHz
 CONFIG_DEBUG_UART_CLOCK=50000000
-# 平台为MT7621
+#绑定MT7621芯片平台
 CONFIG_MACH_MT7621=y
-# 使用MT7621 NOR Flash模板
+#使用MT7621 NOR Flash板级模板
 CONFIG_BOARD_MT7621_NOR_TEMPLATE=y
-# 使用传统DRAM初始化固件
+#启用传统DRAM初始化二进制固件
 CONFIG_MT7621_LEGACY_DRAMC_BIN=y
-# 传统模式配置DDR3 1024M内存
+#适配1GB DDR3内存传统参数
 CONFIG_MT7621_DRAM_DDR3_1024M_LEGACY=y
-# 关闭DRAMC调试日志
+#关闭DRAM调试日志减小体积
 # CONFIG_MT7621_DRAMC_DEBUG_LEGACY is not set
-# NOR Flash内核默认偏移地址0x180000
+#内核默认Flash偏移(适配192k分区)
 CONFIG_DEFAULT_NOR_KERNEL_OFFSET=0x180000
-# MTK自动启动延时1秒
+#MTK自动启动倒计时1秒
 CONFIG_MTKAUTOBOOT_DELAY=1
-# 使用ROM异常向量表
+#使用ROM内置异常向量表节省代码
 CONFIG_ROM_EXCEPTION_VECTORS=y
-# MIPS启动支持设备树FDT
+#MIPS启动支持设备树FDT
 CONFIG_MIPS_BOOT_FDT=y
-# 启用调试串口
+#启用调试串口控制台
 CONFIG_DEBUG_UART=y
-# 关闭版本号自动生成
+#关闭版本号自动生成减少冗余
 # CONFIG_LOCALVERSION_AUTO is not set
-# 内存物理块数量为1
+#物理内存Bank数量设为1
 CONFIG_NR_DRAM_BANKS=1
-# 关闭专家模式
+#关闭专家高级配置菜单瘦身
 # CONFIG_EXPERT is not set
-# 启用FIT镜像格式支持
-CONFIG_FIT=y
-# 关闭设备树内存自动修正
+#关闭FIT镜像格式大幅缩减体积
+# CONFIG_FIT is not set
+#关闭设备树内存自动修正(无用功能)
 # CONFIG_ARCH_FIXUP_FDT_MEMORY is not set
-# 从SPI Flash启动
+#启用SPI Flash启动模式
 CONFIG_SPI_BOOT=y
-# 开机无延时直接启动
+#开机无延时直接自动启动
 CONFIG_BOOTDELAY=0
-# 使用自定义启动命令
+#启用自定义启动命令配置
 CONFIG_USE_BOOTCOMMAND=y
-# 默认启动命令：mtk自动引导
+#默认联发科自动启动指令
 CONFIG_BOOTCOMMAND="mtkautoboot"
-# 控制台静默输出（精简日志）
+#控制台精简冗余打印信息
 CONFIG_SYS_CONSOLE_INFO_QUIET=y
-# 开机显示CPU信息
-CONFIG_DISPLAY_CPUINFO=y
-# 启用最后阶段初始化钩子
+#关闭开机打印CPU信息瘦身
+# CONFIG_DISPLAY_CPUINFO is not set
+#启用最后阶段初始化钩子
 CONFIG_LAST_STAGE_INIT=y
-# SPL加载的镜像：LZMA压缩的U-Boot
+#SPL加载LZMA压缩的U-Boot镜像
 CONFIG_SPL_PAYLOAD="u-boot-lzma.img"
-# SPL支持YMODEM串口传输
+#保留SPL Ymodem串口刷机功能
 CONFIG_SPL_YMODEM_SUPPORT=y
-# 启用TPL最小化启动加载器
+#启用TPL多级启动加载器
 CONFIG_TPL=y
-# TPL需要独立代码基地址
+#TPL需要独立代码段基地址
 CONFIG_TPL_NEEDS_SEPARATE_TEXT_BASE=y
-# 启用启动菜单命令
-CONFIG_CMD_BOOTMENU=y
-# 关闭ELF格式启动命令
+#关闭启动菜单命令瘦身
+# CONFIG_CMD_BOOTMENU is not set
+#关闭ELF镜像启动命令
 # CONFIG_CMD_ELF is not set
-# 关闭XIMG镜像命令
+#关闭XIMG镜像命令
 # CONFIG_CMD_XIMG is not set
-# 关闭原生FLASH命令
+#关闭旧式FLASH冗余命令
 # CONFIG_CMD_FLASH is not set
-# 启用GPIO操作命令
+#保留GPIO控制命令(按键/LED必需)
 CONFIG_CMD_GPIO=y
-# 启用SPI Flash读写命令
+#保留SPI Flash读写必需命令
 CONFIG_CMD_SF=y
-# 启用DHCP客户端命令
+#保留DHCP(Web救援必需)
 CONFIG_CMD_DHCP=y
-# 关闭NFS网络文件系统
-# CONFIG_CMD_NFS is not set
-# 启用PING网络测试命令
+#保留Ping网络调试命令
 CONFIG_CMD_PING=y
-# 启用MTD分区操作命令
+#保留基础网络命令集(Web必需)
+CONFIG_CMD_NET=y
+#关闭NFS网络文件系统(无用瘦身)
+# CONFIG_CMD_NFS is not set
+#保留MTD分区操作命令(必需)
 CONFIG_CMD_MTDPARTS=y
-# 默认MTD设备名称
-CONFIG_MTDIDS_DEFAULT="nor0=raspi"
-# 🔥 修复分区：u-boot 从 192k 扩大到 256k，完美容纳 205KB
-CONFIG_MTDPARTS_DEFAULT="mtdparts=raspi:256k(u-boot),64k(u-boot-env),64k(factory),64k(factory),64k(crash),64k(cfg_bak),1m(overlay),-(firmware)"
-# 关闭简易分区，使用MTD分区
+#修正Flash设备名解决nor0 not found
+CONFIG_MTDIDS_DEFAULT="nor0=spi0.0"
+#恢复192k u-boot分区(瘦身达标)
+CONFIG_MTDPARTS_DEFAULT="mtdparts=spi0.0:192k(u-boot),64k(u-boot-env),64k(factory),64k(factory),64k(crash),64k(cfg_bak),1m(overlay),-(firmware)"
+#关闭简易分区启用MTD分区表
 # CONFIG_PARTITIONS is not set
-# 启用设备树控制
+#启用设备树硬件配置
 CONFIG_OF_CONTROL=y
-# 设备树内嵌到U-Boot
+#设备树内嵌进U-Boot镜像
 CONFIG_OF_EMBED=y
-# 默认设备树文件
+#默认选用MT7621 NOR模板设备树
 CONFIG_DEFAULT_DEVICE_TREE="mt7621_nor_template"
-# 随机生成以太网MAC地址
+#随机生成以太网MAC地址
 CONFIG_NET_RANDOM_ETHADDR=y
-# 关闭设备模型警告日志
+#关闭设备模型警告日志
 # CONFIG_DM_WARN is not set
-# 关闭设备树地址翻译
+#关闭设备树地址翻译瘦身
 # CONFIG_OF_TRANSLATE is not set
-# 启用设备模型GPIO
+#启用设备模型GPIO驱动
 CONFIG_DM_GPIO=y
-# MT7621专用GPIO驱动
+#MT7621原生GPIO驱动
 CONFIG_MT7621_GPIO=y
-# 启用MTD存储子系统
+#启用MTD存储子系统
 CONFIG_MTD=y
-# 启用MTD分区支持
+#启用MTD分区支持
 CONFIG_MTD_PARTITIONS=y
-# 设备模型SPI Flash驱动
+#设备模型SPI Flash驱动
 CONFIG_DM_SPI_FLASH=y
-# 启用SPI Flash核心支持
+#SPI Flash核心驱动开启
 CONFIG_SPI_FLASH=y
-# 启用SPI Flash块地址寄存器
+#启用SPI Flash块寻址
 CONFIG_SPI_FLASH_BAR=y
-# 兼容各品牌SPI Flash芯片
+#兼容EON闪存芯片
 CONFIG_SPI_FLASH_EON=y
+#兼容兆易闪存芯片
 CONFIG_SPI_FLASH_GIGADEVICE=y
+#兼容ISSI闪存芯片
 CONFIG_SPI_FLASH_ISSI=y
+#兼容旺宏闪存芯片
 CONFIG_SPI_FLASH_MACRONIX=y
+#兼容赛普拉斯闪存芯片
 CONFIG_SPI_FLASH_SPANSION=y
+#兼容意法闪存芯片
 CONFIG_SPI_FLASH_STMICRO=y
+#兼容SST闪存芯片
 CONFIG_SPI_FLASH_SST=y
+#兼容华邦闪存芯片
 CONFIG_SPI_FLASH_WINBOND=y
+#兼容兆芯闪存芯片
 CONFIG_SPI_FLASH_XMC=y
-# 不使用4K扇区模式
+#禁用4K扇区兼容传统Flash
 # CONFIG_SPI_FLASH_USE_4K_SECTORS is not set
-# SPI Flash绑定MTD子系统
+#SPI Flash绑定MTD分层
 CONFIG_SPI_FLASH_MTD=y
-# 启用固定PHY模式
+#固定PHY模式精简冗余协商
 CONFIG_PHY_FIXED=y
-# 设备模型以太网驱动
+#设备模型以太网驱动
 CONFIG_DM_ETH=y
-# MT7621以太网MAC驱动
+#MT7621内置以太网MAC驱动
 CONFIG_MT7621_ETH=y
-# 启用引脚控制
+#启用引脚控制子系统
 CONFIG_PINCTRL=y
-# 启用引脚电气配置
+#启用引脚电气配置
 CONFIG_PINCONF=y
-# MT7621引脚控制器驱动
+#MT7621引脚控制器驱动
 CONFIG_PINCTRL_MT7621=y
-# 设备模型复位控制器
+#设备模型复位驱动
 CONFIG_DM_RESET=y
-# MT7621复位驱动
+#MT7621复位控制器驱动
 CONFIG_MT7621_RESET=y
-# 设备模型串口驱动
+#设备模型串口驱动
 CONFIG_DM_SERIAL=y
-# TPL阶段不启用DM串口
+#TPL阶段禁用DM串口瘦身
 # CONFIG_TPL_DM_SERIAL is not set
-# 联发科调试串口适配
+#MTK调试串口适配层
 CONFIG_DEBUG_UART_MTK=y
-# 调试串口地址偏移移位
+#调试串口寄存器偏移
 CONFIG_DEBUG_UART_SHIFT=2
-# 联发科串口通用驱动
+#联发科通用串口驱动
 CONFIG_MTK_SERIAL=y
-# 启用SPI总线
+#启用SPI总线子系统
 CONFIG_SPI=y
-# 设备模型SPI驱动
+#设备模型SPI驱动
 CONFIG_DM_SPI=y
-# MT7621 SPI控制器驱动
+#MT7621 SPI控制器驱动
 CONFIG_MT7621_SPI=y
-# 启用LZMA解压缩
+#启用LZMA压缩解压
 CONFIG_LZMA=y
-# SPL阶段支持LZMA解压
+#SPL阶段支持LZMA解压
 CONFIG_SPL_LZMA=y
-# 启用Web网页救援模式
+#保留Web网页救砖模式
 CONFIG_WEBUI_FAILSAFE=y
-# 启动失败自动进入Web救援
+#启动失败自动进入Web救援
 CONFIG_WEBUI_FAILSAFE_ON_AUTOBOOT_FAIL=y
-# 支持按键触发进入救援模式
+#支持按键长按触发救援模式
 CONFIG_FAILSAFE_ON_BUTTON=y
-# Reset复位按键使用GPIO 18
+#复位按键使用GPIO18
 CONFIG_MT7621_BUTTON_RESET=18
-# 启用状态LED1
+#启用状态指示灯
 CONFIG_MT7621_LED_STATUS1_ENABLE=y
-# 状态LED1使用GPIO 8
+#状态LED使用GPIO8
 CONFIG_MT7621_LED_STATUS1=8
-# Web救援显示的设备型号：小米路由器4A/3Gv2
+#Web救援页面显示设备型号
 CONFIG_WEBUI_FAILSAFE_BOARD_MODEL="Xiaomi_Mi_Router_4a/3g-v2"
-# Web救援显示的设备名称
+#Web救援页面设备别名
 CONFIG_WEBUI_FAILSAFE_BOARD_NAME="Xiaomi_Mi_Router_4a/3g-v2"

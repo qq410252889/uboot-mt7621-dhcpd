@@ -28,7 +28,7 @@ on:
         description: 'MTD 分区布局'
         required: true
         type: string
-        default: '256k(u-boot),64k(u-boot-env),64k(factory),64k(factory),64k(crash),64k(cfg_bak),1m(overlay),-(firmware)'
+        default: '192k(u-boot),64k(u-boot-env),64k(factory),64k(factory),64k(crash),64k(cfg_bak),1m(overlay),-(firmware)'
       kernel_offset:
         description: '内核加载基地址'
         required: true

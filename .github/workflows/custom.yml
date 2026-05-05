@@ -1,7 +1,10 @@
 name: 自定义编译 U-Boot
 permissions:
   contents: write
+
+# 🔥 强制所有 Action 运行在 Node.js 24，彻底消除弃用警告
 env:
+  ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node24
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
@@ -25,7 +28,7 @@ on:
         description: 'MTD 分区布局'
         required: true
         type: string
-        default: '192k(u-boot),64k(u-boot-env),64k(factory),64k(factory),64k(crash),64k(cfg_bak),1m(overlay),-(firmware)'
+        default: '256k(u-boot),64k(u-boot-env),64k(factory),64k(factory),64k(crash),64k(cfg_bak),1m(overlay),-(firmware)'
       kernel_offset:
         description: '内核加载基地址'
         required: true

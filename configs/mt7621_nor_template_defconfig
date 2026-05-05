@@ -180,6 +180,9 @@ CONFIG_MT7621_SPI=y
 CONFIG_LZMA=y
 #SPL阶段支持LZMA解压
 CONFIG_SPL_LZMA=y
+#🔥 修复failsafe链接错误：必须开启MD5库
+CONFIG_MD5=y
+CONFIG_CMD_HASH=y
 #保留Web网页救砖模式
 CONFIG_WEBUI_FAILSAFE=y
 #启动失败自动进入Web救援

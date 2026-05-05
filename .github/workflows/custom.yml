@@ -151,6 +151,16 @@ jobs:
             '${{ inputs.oldparam }}' \
             | tee "archive/${{ steps.clean_model.outputs.clean_model }}-编译日志.log" || true
 
+      # 🔥🔥🔥 这里是我加的：强制开启 MD5，彻底修复 undefined reference to `md5'
+      - name: 强制开启 MD5 修复链接错误
+        working-directory: uboot-mt7621
+        run: |
+          echo "CONFIG_MD5=y" >> .config
+          echo "CONFIG_SHA1=y" >> .config
+          echo "CONFIG_HASH=y" >> .config
+          make clean
+          make -j$(nproc)
+
       - name: 上传编译产物
         uses: actions/upload-artifact@v4.4.3
         with:

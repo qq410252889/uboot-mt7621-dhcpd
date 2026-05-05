@@ -148,11 +148,11 @@ jobs:
           find . -type f \( -name "Makefile*" -o -name "*.mk" -o -name "*.lds" -o -name ".config" \) -exec sed -i 's/-G [0-9]*//g' {} +
           make olddefconfig
 
-      # 🔥 修复 BITS_PER_LONG 未定义错误
-      - name: 强制定义 MIPS 字长
+      # 🔥 终极修复 BITS_PER_LONG：通过 CFLAGS 全局传递
+      - name: 强制定义 BITS_PER_LONG
         working-directory: uboot-mt7621
         run: |
-          echo "#define BITS_PER_LONG 32" >> include/config.h
+          echo "CFLAGS += -DBITS_PER_LONG=32" >> Makefile
           echo "#define CONFIG_32BIT 1" >> .config
           make olddefconfig
 

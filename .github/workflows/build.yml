@@ -16,7 +16,7 @@ on:
         - 'xiaomi_mi-router-ac2100'
         - 'xiaomi_mi-router-cr660x'
         - 'xiaomi_redmi-router-ac2100'
-        - 'xiaomi_mi-router-3g'        
+        - 'xiaomi_mi-router-3g'
         default: 'xiaomi_mi-router-3-pro'
       warninginfo:
         description: '警告：此配置文件为自动迁移生成。mt7621 系列配置文件不受信任！编译前务必确认适配你的设备！使用前请阅读项目 README！错误刷写有变砖风险，风险自负！'
@@ -53,8 +53,9 @@ jobs:
           echo "3. 取消【未读警告盲目勾选】"
           exit 1
 
+      # === 已升级到支持 Node.js 24 的最新版本 ===
       - name: 拉取仓库代码
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.3.0
         with:
           path: uboot-mt7621
 
@@ -62,10 +63,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential libncurses5-dev python2-dev swig bzip2 wget git make gcc g++ libssl-dev u-boot-tools
-          # 手动设置 python -> python2
           sudo rm -f /usr/bin/python
           sudo ln -s /usr/bin/python2 /usr/bin/python
-          python --version  # 验证版本
+          python --version
 
       - name: 下载 OpenWrt 交叉编译工具链
         run: |
@@ -105,15 +105,17 @@ jobs:
             fi
           done
 
+      # === 已升级到支持 Node.js 24 的最新版本 ===
       - name: 上传编译成品文件
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: ${{ inputs.model }}-uboot-${{ steps.timestamp.outputs.now }}
           path: uboot-mt7621/archive/
           if-no-files-found: error
 
+      # === 已升级到支持 Node.js 24 的最新版本 ===
       - name: 创建 GitHub 发布版本
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.2.1
         if: ${{ inputs.pub_release }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

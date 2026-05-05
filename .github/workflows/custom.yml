@@ -130,24 +130,25 @@ jobs:
             '${{ inputs.cpufreq }}' '${{ inputs.ramfreq }}' '${{ inputs.ddrparam }}' \
             '${{ inputs.baudrate }}' '${{ inputs.model }}' '${{ inputs.model }}' '${{ inputs.oldparam }}'
 
-      # ==================== 🔥 自动修复所有错误 ====================
-      - name: 强制开启 MD5（修复链接错误）
+      # 🔥 修复 md5 未定义引用
+      - name: 强制开启 MD5
         working-directory: uboot-mt7621
         run: |
           echo "CONFIG_MD5=y" >> .config
           echo "CONFIG_SHA1=y" >> .config
           echo "CONFIG_HASH=y" >> .config
 
-      - name: 修复 GCC12 编译选项
+      # 🔥 彻底删除 -mno-abicalls（这次不留死角）
+      - name: 彻底删除不兼容编译选项
         working-directory: uboot-mt7621
         run: |
-          find . -name "Makefile*" -o -name "*.mk" | xargs sed -i 's/--mno-abicalls/-mno-abicalls/g'
-          find . -name "Makefile*" -o -name "*.mk" | xargs sed -i 's/-mabi=32//g'
-          find . -name "Makefile*" -o -name "*.mk" | xargs sed -i 's/-EL//g'
-          find . -name "Makefile*" -o -name "*.mk" | xargs sed -i 's/-G [0-9]*//g'
+          grep -rl "-mno-abicalls" . --include="Makefile*" --include="*.mk" --include="*.lds" --include=".config" | xargs sed -i 's/-mno-abicalls//g'
+          grep -rl "-mabi=32" . --include="Makefile*" --include="*.mk" --include="*.lds" --include=".config" | xargs sed -i 's/-mabi=32//g'
+          grep -rl "-EL" . --include="Makefile*" --include="*.mk" --include="*.lds" --include=".config" | xargs sed -i 's/-EL//g'
+          grep -rl "-G" . --include="Makefile*" --include="*.mk" --include="*.lds" --include=".config" | xargs sed -i 's/-G [0-9]*//g'
           make olddefconfig
 
-      # ==================== 开始编译 ====================
+      # 正式编译
       - name: 正式编译
         working-directory: uboot-mt7621
         run: make -j$(nproc)

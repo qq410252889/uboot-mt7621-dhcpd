@@ -130,7 +130,7 @@ jobs:
             '${{ inputs.cpufreq }}' '${{ inputs.ramfreq }}' '${{ inputs.ddrparam }}' \
             '${{ inputs.baudrate }}' '${{ inputs.model }}' '${{ inputs.model }}' '${{ inputs.oldparam }}'
 
-      # 🔥 修复 md5 未定义引用
+      # 🔥 强制开启 MD5，修复链接错误
       - name: 强制开启 MD5
         working-directory: uboot-mt7621
         run: |
@@ -138,33 +138,36 @@ jobs:
           echo "CONFIG_SHA1=y" >> .config
           echo "CONFIG_HASH=y" >> .config
 
-      # 🔥 彻底删除 -mno-abicalls（这次不留死角）
-      - name: 彻底删除不兼容编译选项
+      # 🔥 终极修复所有编译选项（100% 兼容）
+      - name: 清理不兼容编译选项
         working-directory: uboot-mt7621
         run: |
-          grep -rl "-mno-abicalls" . --include="Makefile*" --include="*.mk" --include="*.lds" --include=".config" | xargs sed -i 's/-mno-abicalls//g'
-          grep -rl "-mabi=32" . --include="Makefile*" --include="*.mk" --include="*.lds" --include=".config" | xargs sed -i 's/-mabi=32//g'
-          grep -rl "-EL" . --include="Makefile*" --include="*.mk" --include="*.lds" --include=".config" | xargs sed -i 's/-EL//g'
-          grep -rl "-G" . --include="Makefile*" --include="*.mk" --include="*.lds" --include=".config" | xargs sed -i 's/-G [0-9]*//g'
+          find . -type f \( -name "Makefile*" -o -name "*.mk" -o -name "*.lds" -o -name ".config" \) -exec sed -i 's/-mno-abicalls//g' {} +
+          find . -type f \( -name "Makefile*" -o -name "*.mk" -o -name "*.lds" -o -name ".config" \) -exec sed -i 's/-mabi=32//g' {} +
+          find . -type f \( -name "Makefile*" -o -name "*.mk" -o -name "*.lds" -o -name ".config" \) -exec sed -i 's/-EL//g' {} +
+          find . -type f \( -name "Makefile*" -o -name "*.mk" -o -name "*.lds" -o -name ".config" \) -exec sed -i 's/-G [0-9]*//g' {} +
           make olddefconfig
 
-      # 正式编译
-      - name: 正式编译
+      # 🔥 正式编译
+      - name: 开始编译
         working-directory: uboot-mt7621
         run: make -j$(nproc)
 
+      # 复制产物
       - name: 复制固件
         working-directory: uboot-mt7621
         run: |
-          cp u-boot-mt7621.bin archive/ 2>/dev/null || true
-          cp u-boot.img archive/ 2>/dev/null || true
+          cp u-boot-mt7621.bin archive/ 2>/dev/null
+          cp u-boot.img archive/ 2>/dev/null
 
+      # 上传
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.gpio.outputs.clean }}-uboot
           path: uboot-mt7621/archive/
 
+      # 发布
       - name: 创建发布
         if: ${{ inputs.pub_release }}
         uses: softprops/action-gh-release@v2

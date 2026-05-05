@@ -94,7 +94,7 @@ jobs:
 
     steps:
       - name: 拉取源码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.3.0
         with:
           path: uboot-mt7621
 
@@ -149,7 +149,7 @@ jobs:
             | tee "archive/${{ steps.clean_model.outputs.clean_model }}-编译日志.log" || true
 
       - name: 上传编译产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: ${{ steps.clean_model.outputs.clean_model }}-uboot
           path: "uboot-mt7621/archive/"
@@ -170,7 +170,7 @@ jobs:
           done
 
       - name: 创建发布版本
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.2.1
         if: ${{ inputs.pub_release }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

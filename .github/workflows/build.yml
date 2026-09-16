@@ -1,4 +1,4 @@
-name: Build u-boot by board
+name: 输入型号构建uboot
 on:
   workflow_dispatch:
     inputs:

@@ -1,4 +1,5 @@
 name: Build u-boot by board
+
 on:
   workflow_dispatch:
     inputs:
@@ -33,27 +34,32 @@ on:
         required: false
         default: true
         type: boolean
+
 jobs:
   build:
     name: Build MT7621 u-boot
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
        fail-fast: False
+
     steps:
       - name: make sure the user has confirmed the warning
         if: ${{ !inputs.warning || !inputs.warninginfo }}
         run: |
           echo "Please confirm the warning before running this workflow."
           exit 1
+
       - name: make sure the user has confirmed the warning info not being trustworthy
         if: ${{ inputs.confirm }}
         run: |
           echo "Please confirm that you have read the warning info before running this workflow."
           exit 1
+
       - name: Checkout master directory
         uses: actions/checkout@v5
         with:
           path: uboot-mt7621
+
       - name: Install essential packages
         run: |
           sudo apt-get update
@@ -61,15 +67,18 @@ jobs:
           echo 'switch to python2 as default'
           sudo rm /usr/bin/python
           sudo ln -s /usr/bin/python2 /usr/bin/python
+
       - name: Download OpenWrt toolchain
         run: |
           wget -O - https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz \
             | tar --xz -xf -
+
       - name: Compile
         working-directory: uboot-mt7621
         run: |
           mkdir -p archive
           BOARD=${{ inputs.model }} ./build.sh | tee "archive/${{ inputs.model }}-build.log"
+
       - name: Upload binaries
         uses: actions/upload-artifact@v5
         with:
@@ -79,6 +88,7 @@ jobs:
       - name: Generate timestamp
         id: timestamp
         run: echo "now=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
+
       - name: rename uboot-mt7621
         run: |
           for file in uboot-mt7621/archive/*; do
@@ -87,19 +97,10 @@ jobs:
             name="${filename%.*}"
             mv "$file" "uboot-mt7621/archive/${name}-${{ steps.timestamp.outputs.now }}.${extension}"
           done
-      # 新增：检查tag是否已存在，避免重复tag触发上传重试失败
-      - name: Check if release tag exists
-        id: tag_check
-        run: |
-          TAG_NAME=${{ inputs.model }}-${{ steps.timestamp.outputs.now }}
-          if git rev-parse "tags/${TAG_NAME}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
-        if: ${{ inputs.pub_release && steps.tag_check.outputs.exists == 'false' }}
+        if: ${{ inputs.pub_release }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -111,6 +112,3 @@ jobs:
             - Device: ${{ inputs.model }}
           files: uboot-mt7621/archive/*
           tag_name: ${{ inputs.model }}-${{ steps.timestamp.outputs.now }}
-          # 增加上传重试配置，解决网络抖动 Too many retries
-          retry_count: 6
-          retry_delay: 10000

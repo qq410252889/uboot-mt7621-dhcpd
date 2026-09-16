@@ -51,7 +51,7 @@ jobs:
           echo "Please confirm that you have read the warning info before running this workflow."
           exit 1
       - name: Checkout master directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: uboot-mt7621
       - name: Install essential packages

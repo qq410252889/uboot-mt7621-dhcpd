@@ -36,7 +36,7 @@ on:
 jobs:
   build:
     name: Build MT7621 u-boot
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
        fail-fast: False
     steps:

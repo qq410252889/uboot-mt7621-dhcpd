@@ -51,7 +51,7 @@ jobs:
           echo "Please confirm that you have read the warning info before running this workflow."
           exit 1
       - name: Checkout master directory
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           path: uboot-mt7621
       - name: Install essential packages
@@ -85,13 +85,13 @@ jobs:
           done
 
       - name: Upload binaries to artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.model }}-uboot
           path: "uboot-mt7621/archive/"
       
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: ${{ inputs.pub_release }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

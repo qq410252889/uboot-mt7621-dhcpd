@@ -55,7 +55,7 @@ on:
 jobs:
   build:
     name: 编译 MT7621 U-Boot
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
        fail-fast: False
     outputs:
